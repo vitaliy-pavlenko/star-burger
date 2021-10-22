@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from .models import Order, OrderItem, Product
@@ -61,6 +62,7 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     try:
+        validate_order(request.data)
         new_order = Order.objects.create(
             firstname=request.data.get('firstname'),
             lastname=request.data.get('lastname'),
@@ -79,3 +81,19 @@ def register_order(request):
             'error': f'Something went wrong - {e}',
         })
     return Response({})
+
+
+def validate_order(order):
+    if 'products' not in order:
+        raise ValidationError('products: Обязательное поле')
+
+    order_items = order.get('products')
+
+    if order_items is None:
+        raise ValidationError('products: Это поле не может быть пустым')
+
+    if isinstance(order_items, str):
+        raise ValidationError('products: Ожидался list со значениями, но был получен "str"')
+
+    if isinstance(order_items, list) and len(order_items) < 1:
+        raise ValidationError('products: Этот список не может быть пустым')

@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.status import HTTP_201_CREATED
 
 from .models import Order, OrderItem, Product
 from .serializers import OrderSerializer
@@ -61,26 +62,22 @@ def product_list_api(request):
 
 @api_view(['POST'])
 def register_order(request):
-    try:
-        serializer = OrderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    serializer = OrderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-        order_data = serializer.validated_data
-        new_order = Order.objects.create(
-            firstname=order_data['firstname'],
-            lastname=order_data['lastname'],
-            phonenumber=order_data['phonenumber'],
-            address=order_data['address'],
+    order_data = serializer.validated_data
+    new_order = Order.objects.create(
+        firstname=order_data['firstname'],
+        lastname=order_data['lastname'],
+        phonenumber=order_data['phonenumber'],
+        address=order_data['address'],
+    )
+    order_items = order_data['products']
+    for item in order_items:
+        OrderItem.objects.create(
+            order=new_order,
+            product=Product.objects.get(pk=item['product'].id),
+            quantity=item['quantity'],
         )
-        order_items = order_data['products']
-        for item in order_items:
-            OrderItem.objects.create(
-                order=new_order,
-                product=Product.objects.get(pk=item['product'].id),
-                quantity=item['quantity'],
-            )
-    except ValueError as e:
-        return Response({
-            'error': f'Something went wrong - {e}',
-        })
-    return Response({})
+    serializer = OrderSerializer(new_order)
+    return Response(serializer.data, status=HTTP_201_CREATED)

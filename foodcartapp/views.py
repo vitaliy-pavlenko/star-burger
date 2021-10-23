@@ -1,3 +1,5 @@
+import phonenumbers
+
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
@@ -84,16 +86,76 @@ def register_order(request):
 
 
 def validate_order(order):
-    if 'products' not in order:
-        raise ValidationError('products: Обязательное поле')
+    errors = []
 
-    order_items = order.get('products')
+    firstname_error = validate_string_field(order, 'firstname')
+    if firstname_error:
+        errors.append(firstname_error)
 
-    if order_items is None:
-        raise ValidationError('products: Это поле не может быть пустым')
+    lastname_error = validate_string_field(order, 'lastname')
+    if lastname_error:
+        errors.append(lastname_error)
 
-    if isinstance(order_items, str):
-        raise ValidationError('products: Ожидался list со значениями, но был получен "str"')
+    address_error = validate_string_field(order, 'address')
+    if address_error:
+        errors.append(address_error)
 
-    if isinstance(order_items, list) and len(order_items) < 1:
-        raise ValidationError('products: Этот список не может быть пустым')
+    phonenumber_error = validate_phonenumber_field(order, 'phonenumber')
+    if phonenumber_error:
+        errors.append(phonenumber_error)
+
+    products_error = validate_order_items(order, 'products', Product)
+    if products_error:
+        errors.append(products_error)
+
+    if errors:
+        raise ValidationError(errors)
+
+
+def validate_string_field(data, field_name):
+    if field_name not in data:
+        return f'{field_name}: Обязательное поле'
+    else:
+        field_data = data.get(field_name)
+        if field_data is None:
+            return f'{field_name}: Это поле не может быть пустым'
+        if not isinstance(field_data, str):
+            return f'{field_name}: Not a valid string'
+    return None
+
+
+def validate_phonenumber_field(data, field_name):
+    if field_name not in data:
+        return f'{field_name}: Обязательное поле'
+    else:
+        field_data = data.get(field_name)
+        if not field_data or field_data is None:
+            return f'{field_name}: Это поле не может быть пустым'
+        if not phonenumbers.is_valid_number(phonenumbers.parse(field_data)):
+            return f'{field_name}: Введен некорректный номер телефона'
+    return None
+
+
+def validate_order_items(data, field_name, model):
+    if field_name not in data:
+        return f'{field_name}: Обязательное поле'
+    else:
+        field_data = data.get(field_name)
+        if field_data is None:
+            return f'{field_name}: Это поле не может быть пустым'
+        if isinstance(field_data, str):
+            return f'{field_name}: Ожидался list со значениями, но был получен "str"'
+        if isinstance(field_data, list) and len(field_name) < 1:
+            return f'{field_name}: Этот список не может быть пустым'
+
+        errors = []
+        for item in field_data:
+            pk = item.get(model.__name__.lower())
+            try:
+                model.objects.get(pk=pk)
+            except Product.DoesNotExist:
+                errors.append(f'{field_name}: Недопустимый первичный ключ {pk}')
+        if errors:
+            return errors
+
+    return None

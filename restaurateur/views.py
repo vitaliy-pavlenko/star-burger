@@ -1,5 +1,5 @@
 from django import forms
-from django.db.models import F, Sum
+from django.db.models import Sum
 from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
@@ -100,6 +100,6 @@ def view_restaurants(request):
 def view_orders(request):
     return render(request, template_name='order_items.html', context={
         'order_items': Order.objects.annotate(
-            total_count=Sum(F('orderitem__quantity') * F('orderitem__product__price'))
+            total_count=Sum('orderitem__price')
         ),
     })

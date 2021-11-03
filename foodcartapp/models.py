@@ -136,6 +136,12 @@ class Order(models.Model):
         (DELIVERING, 'В доставке'),
         (DONE, 'Выполнен'),
     )
+    CASH = 1
+    CARD = 2
+    PAYMENT_METHOD_CHOICES = (
+        (CASH, 'Оплата наличными'),
+        (CARD, 'Оплата картой')
+    )
     firstname = models.CharField(max_length=100, verbose_name='Имя')
     lastname = models.CharField(max_length=100, verbose_name='Фамилия')
     phonenumber = PhoneNumberField(max_length=15, verbose_name='Телефон')
@@ -145,6 +151,7 @@ class Order(models.Model):
     registered_at = models.DateTimeField(default=timezone.now, verbose_name='Время регистрации заказа')
     called_at = models.DateTimeField(null=True, blank=True, verbose_name='Время звонка менеджера')
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='Время доставки')
+    payment_method = models.IntegerField(choices=PAYMENT_METHOD_CHOICES, default=CASH, verbose_name='Способ оплаты')
 
     def __str__(self):
         return f'{self.firstname} {self.lastname} {self.address}'

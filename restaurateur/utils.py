@@ -1,9 +1,28 @@
 import requests
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from requests import HTTPError
+
+from place.models import Place
 
 
-def fetch_coordinates(address):
+def get_coordinates(address):
+    try:
+        place = Place.objects.get(address=address)
+    except ObjectDoesNotExist:
+        try:
+            coords = fetch_coordinates_from_yandex_api(address)
+        except HTTPError:
+            coords = [0, 0]
+        finally:
+            place = Place(address=address, latitude=coords[1], longitude=coords[0])
+            place.save()
+
+    return place.longitude, place.latitude
+
+
+def fetch_coordinates_from_yandex_api(address):
     apikey = settings.YANDEX_API_KEY
     base_url = "https://geocode-maps.yandex.ru/1.x"
     response = requests.get(base_url, params={

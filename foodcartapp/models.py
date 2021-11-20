@@ -5,7 +5,7 @@ from django.utils import timezone
 from geopy.distance import distance
 from phonenumber_field.modelfields import PhoneNumberField
 
-from restaurateur.utils import fetch_coordinates
+from restaurateur.utils import get_coordinates
 
 
 class Restaurant(models.Model):
@@ -132,7 +132,7 @@ class RestaurantMenuItem(models.Model):
 class OrderQuerySet(models.QuerySet):
     def fetch_available_restaurants(self):
         for order in self:
-            order_coords = fetch_coordinates(order.address)
+            order_coords = get_coordinates(order.address)
             available_restaurants_qs = RestaurantMenuItem.objects.filter(
                 availability=True, product_id__in=order.order_items.values_list('product_id', flat=True)
             )\
@@ -145,7 +145,7 @@ class OrderQuerySet(models.QuerySet):
             restaurants = Restaurant.objects.filter(id__in=available_restaurants_qs.values_list('restaurant_id', flat=True))
 
             for restaurant in restaurants:
-                restaurant_coords = fetch_coordinates(restaurant.address)
+                restaurant_coords = get_coordinates(restaurant.address)
                 restaurant.distance = round(distance(order_coords, restaurant_coords).km, 3)
                 order.restaurants.append(restaurant)
 

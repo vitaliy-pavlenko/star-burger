@@ -99,7 +99,7 @@ def view_restaurants(request):
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     return render(request, template_name='order_items.html', context={
-        'order_items': Order.objects.annotate(
-            total_count=Sum('orderitem__price')
-        ),
+        'order_items': Order.objects
+                  .annotate(total_count=Sum('order_items__price'))
+                  .fetch_available_restaurants(),
     })

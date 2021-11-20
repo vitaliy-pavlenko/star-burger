@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Count
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -125,6 +126,21 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
+class OrderQuerySet(models.QuerySet):
+    def fetch_available_restaurants(self):
+        for order in self:
+            available_restaurants_qs = RestaurantMenuItem.objects.filter(
+                availability=True, product_id__in=order.order_items.values_list('product_id', flat=True)
+            )\
+                .values('restaurant_id')\
+                .order_by('restaurant_id')\
+                .annotate(available_restaurants_count=Count('restaurant_id'))\
+                .filter(available_restaurants_count=order.order_items.count())
+
+            order.restaurants = Restaurant.objects.filter(id__in=available_restaurants_qs.values_list('restaurant_id', flat=True))
+        return self
+
+
 class Order(models.Model):
     NEW = 1
     PROCESSING = 2
@@ -152,6 +168,9 @@ class Order(models.Model):
     called_at = models.DateTimeField(null=True, blank=True, verbose_name='Время звонка менеджера')
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='Время доставки')
     payment_method = models.IntegerField(choices=PAYMENT_METHOD_CHOICES, default=CASH, verbose_name='Способ оплаты')
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders', verbose_name='Ресторан')
+
+    objects = OrderQuerySet.as_manager()
 
     def __str__(self):
         return f'{self.firstname} {self.lastname} {self.address}'
@@ -162,7 +181,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='Заказ')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_items', verbose_name='Заказ')
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, verbose_name='Товар')
     quantity = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
     price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='Стоимость товара')

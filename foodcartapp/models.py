@@ -2,7 +2,10 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Count
 from django.utils import timezone
+from geopy.distance import distance
 from phonenumber_field.modelfields import PhoneNumberField
+
+from restaurateur.utils import fetch_coordinates
 
 
 class Restaurant(models.Model):
@@ -129,6 +132,7 @@ class RestaurantMenuItem(models.Model):
 class OrderQuerySet(models.QuerySet):
     def fetch_available_restaurants(self):
         for order in self:
+            order_coords = fetch_coordinates(order.address)
             available_restaurants_qs = RestaurantMenuItem.objects.filter(
                 availability=True, product_id__in=order.order_items.values_list('product_id', flat=True)
             )\
@@ -137,7 +141,16 @@ class OrderQuerySet(models.QuerySet):
                 .annotate(available_restaurants_count=Count('restaurant_id'))\
                 .filter(available_restaurants_count=order.order_items.count())
 
-            order.restaurants = Restaurant.objects.filter(id__in=available_restaurants_qs.values_list('restaurant_id', flat=True))
+            order.restaurants = []
+            restaurants = Restaurant.objects.filter(id__in=available_restaurants_qs.values_list('restaurant_id', flat=True))
+
+            for restaurant in restaurants:
+                restaurant_coords = fetch_coordinates(restaurant.address)
+                restaurant.distance = round(distance(order_coords, restaurant_coords).km, 3)
+                order.restaurants.append(restaurant)
+
+            order.restaurants.sort(key=lambda r: r.distance)
+
         return self
 
 

@@ -135,12 +135,12 @@ class OrderQuerySet(models.QuerySet):
         for order in self:
             order_coords = get_coordinates(order.address)
             available_restaurants_qs = RestaurantMenuItem.objects.filter(
-                availability=True, product_id__in=order.order_items.values_list('product_id', flat=True)
+                availability=True, product_id__in=order.items.values_list('product_id', flat=True)
             )\
                 .values('restaurant_id')\
                 .order_by('restaurant_id')\
                 .annotate(available_restaurants_count=Count('restaurant_id'))\
-                .filter(available_restaurants_count=order.order_items.count())
+                .filter(available_restaurants_count=order.items.count())
 
             order.restaurants = []
             restaurants = Restaurant.objects.filter(id__in=available_restaurants_qs.values_list('restaurant_id', flat=True))

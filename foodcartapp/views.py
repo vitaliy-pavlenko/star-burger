@@ -80,7 +80,7 @@ def register_order(request):
             order=new_order,
             product=item['product'],
             quantity=item['quantity'],
-            price=item['quantity'] * item['product'].price
+            total_price=item['quantity'] * item['product'].price
         )
     serializer = OrderSerializer(new_order)
     return Response(serializer.data, status=HTTP_201_CREATED)

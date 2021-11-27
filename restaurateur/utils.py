@@ -7,13 +7,17 @@ from requests import HTTPError
 from place.models import Place
 
 
+class NoPlaceFound(Exception):
+    pass
+
+
 def get_coordinates(address):
     try:
         place = Place.objects.get(address=address)
     except ObjectDoesNotExist:
         try:
             coords = fetch_coordinates_from_yandex_api(address)
-        except HTTPError:
+        except (HTTPError, NoPlaceFound):
             coords = [0, 0]
         finally:
             place = Place(address=address, latitude=coords[1], longitude=coords[0])
@@ -34,7 +38,7 @@ def fetch_coordinates_from_yandex_api(address):
     found_places = response.json()['response']['GeoObjectCollection']['featureMember']
 
     if not found_places:
-        return None
+        raise NoPlaceFound
 
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")

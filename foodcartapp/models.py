@@ -186,12 +186,12 @@ class Order(models.Model):
 
     objects = OrderQuerySet.as_manager()
 
-    def __str__(self):
-        return f'{self.firstname} {self.lastname} {self.address}'
-
     class Meta:
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'
+
+    def __str__(self):
+        return f'{self.firstname} {self.lastname} {self.address}'
 
 
 class OrderItem(models.Model):
@@ -200,9 +200,9 @@ class OrderItem(models.Model):
     quantity = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
     price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='Стоимость товара')
 
-    def __str__(self):
-        return f'{self.product.name} {self.order}'
-
     class Meta:
         verbose_name = 'Элемент заказа'
         verbose_name_plural = 'Элементы заказа'
+
+    def __str__(self):
+        return f'{self.product.name} {self.order}'

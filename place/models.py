@@ -18,4 +18,4 @@ class Place(models.Model):
         ],
         verbose_name='Долгота'
     )
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления', db_index=True)

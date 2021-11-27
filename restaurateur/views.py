@@ -100,6 +100,7 @@ def view_restaurants(request):
 def view_orders(request):
     return render(request, template_name='order_items.html', context={
         'order_items': Order.objects
+                  .filter(status=Order.NEW)
                   .annotate(total_count=Sum('items__total_price'))
                   .fetch_available_restaurants(),
     })

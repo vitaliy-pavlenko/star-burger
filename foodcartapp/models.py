@@ -181,7 +181,7 @@ class Order(models.Model):
     registered_at = models.DateTimeField(default=timezone.now, verbose_name='Время регистрации заказа', db_index=True)
     called_at = models.DateTimeField(null=True, blank=True, verbose_name='Время звонка менеджера', db_index=True)
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='Время доставки', db_index=True)
-    payment_method = models.IntegerField(choices=PAYMENT_METHOD_CHOICES, default=CASH, verbose_name='Способ оплаты', db_index=True)
+    payment_method = models.IntegerField(choices=PAYMENT_METHOD_CHOICES, verbose_name='Способ оплаты', db_index=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders', verbose_name='Ресторан')
 
     objects = OrderQuerySet.as_manager()

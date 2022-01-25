@@ -1,11 +1,11 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db.models import Count
+from django.db.models import Prefetch
 from django.utils import timezone
 from geopy.distance import distance
 from phonenumber_field.modelfields import PhoneNumberField
 
-from restaurateur.utils import get_coordinates
+from restaurateur.utils import get_places
 
 
 class Restaurant(models.Model):
@@ -132,27 +132,34 @@ class RestaurantMenuItem(models.Model):
 
 class OrderQuerySet(models.QuerySet):
     def fetch_available_restaurants(self):
-        for order in self:
-            order_coords = get_coordinates(order.address)
-            available_restaurants_qs = RestaurantMenuItem.objects.filter(
-                availability=True, product_id__in=order.items.values_list('product_id', flat=True)
-            )\
-                .values('restaurant_id')\
-                .order_by('restaurant_id')\
-                .annotate(available_restaurants_count=Count('restaurant_id'))\
-                .filter(available_restaurants_count=order.items.count())
+        orders = self.prefetch_related(Prefetch('items', queryset=OrderItem.objects.select_related('product')))
+        restaurants = Restaurant.objects.all()
+        menu_items = RestaurantMenuItem.objects.filter(availability=True).select_related('restaurant', 'product')
+        order_addresses = [o.address for o in orders]
+        restaurants_addresses = [r.address for r in restaurants]
+        places = get_places(order_addresses + restaurants_addresses)
+
+        for order in orders:
+            order_place = places.get(order.address)
+
+            restaurants_for_products = []
+            for order_item in order.items.all():
+                restaurants_for_product = [m.restaurant for m in menu_items if m.product == order_item.product]
+                restaurants_for_products.append(set(restaurants_for_product))
+            available_restaurants = set.intersection(*restaurants_for_products)
 
             order.restaurants = []
-            restaurants = Restaurant.objects.filter(id__in=available_restaurants_qs.values_list('restaurant_id', flat=True))
-
-            for restaurant in restaurants:
-                restaurant_coords = get_coordinates(restaurant.address)
-                restaurant.distance = round(distance(order_coords, restaurant_coords).km, 3)
+            for restaurant in available_restaurants:
+                restaurant_place = places.get(restaurant.address)
+                restaurant.distance = round(distance(
+                    (order_place.longitude, order_place.latitude),
+                    (restaurant_place.longitude, restaurant_place.latitude)
+                ).km, 3)
                 order.restaurants.append(restaurant)
 
             order.restaurants.sort(key=lambda r: r.distance)
 
-        return self
+        return orders
 
 
 class Order(models.Model):

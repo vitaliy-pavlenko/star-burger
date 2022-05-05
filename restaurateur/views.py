@@ -10,7 +10,7 @@ from django.contrib.auth import views as auth_views
 from geopy.distance import distance
 
 from foodcartapp.models import Product, Restaurant, Order
-from restaurateur.utils import get_places
+from place.crud_helpers import get_places
 
 
 class Login(forms.Form):

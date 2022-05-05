@@ -184,7 +184,7 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(max_length=15, verbose_name='Телефон')
     address = models.CharField(max_length=200, verbose_name='Адрес')
     status = models.IntegerField(choices=STATUS_CHOICES, default=NEW, verbose_name='Статус', db_index=True)
-    comment = models.TextField(max_length=300, blank=True, verbose_name='Комментарий к заказу')
+    comment = models.CharField(max_length=300, blank=True, verbose_name='Комментарий к заказу')
     registered_at = models.DateTimeField(default=timezone.now, verbose_name='Время регистрации заказа', db_index=True)
     called_at = models.DateTimeField(null=True, blank=True, verbose_name='Время звонка менеджера', db_index=True)
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='Время доставки', db_index=True)
@@ -204,7 +204,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='Заказ')
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, related_name='items', verbose_name='Товар')
-    quantity = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
+    quantity = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name='Количество товара')
     total_price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='Стоимость товара')
 
     class Meta:

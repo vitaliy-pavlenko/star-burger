@@ -7,9 +7,10 @@ from django.contrib.auth.decorators import user_passes_test
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
-
+from geopy.distance import distance
 
 from foodcartapp.models import Product, Restaurant, Order
+from restaurateur.utils import get_places
 
 
 class Login(forms.Form):
@@ -96,11 +97,36 @@ def view_restaurants(request):
     })
 
 
+def enrich_orders_with_delivery_distance(orders):
+    order_addresses = [o.address for o in orders]
+    restaurants = Restaurant.objects.all()
+    restaurants_addresses = [r.address for r in restaurants]
+    places = get_places(order_addresses + restaurants_addresses)
+    for order in orders:
+        order_place = places.get(order.address)
+
+        for restaurant in order.restaurants:
+            restaurant_place = places.get(restaurant.address)
+            restaurant.distance = calculate_distance(order_place, restaurant_place)
+
+        order.restaurants.sort(key=lambda r: r.distance)
+
+
+def calculate_distance(one_place, another_place):
+    return round(distance(
+        (one_place.longitude, one_place.latitude),
+        (another_place.longitude, another_place.latitude)
+    ).km, 3)
+
+
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
+    orders = Order.objects.filter(status=Order.NEW)\
+        .annotate(total_count=Sum('items__total_price'))\
+        .fetch_available_restaurants()
+
+    enrich_orders_with_delivery_distance(orders)
+
     return render(request, template_name='order_items.html', context={
-        'order_items': Order.objects
-                  .filter(status=Order.NEW)
-                  .annotate(total_count=Sum('items__total_price'))
-                  .fetch_available_restaurants(),
+        'order_items': orders,
     })

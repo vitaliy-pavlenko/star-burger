@@ -6,7 +6,7 @@ from requests import HTTPError
 from place.models import Place
 
 
-class NoPlaceFound(Exception):
+class PlaceDoesNotResolvedByGeocoder(Exception):
     pass
 
 
@@ -21,7 +21,7 @@ def get_places(addresses):
 def create_place(address):
     try:
         coords = fetch_coordinates_from_yandex_api(address)
-    except (HTTPError, NoPlaceFound):
+    except (HTTPError, PlaceDoesNotResolvedByGeocoder):
         coords = [0, 0]
     finally:
         place = Place(address=address, latitude=coords[1], longitude=coords[0])
@@ -42,7 +42,7 @@ def fetch_coordinates_from_yandex_api(address):
     found_places = response.json()['response']['GeoObjectCollection']['featureMember']
 
     if not found_places:
-        raise NoPlaceFound
+        raise PlaceDoesNotResolvedByGeocoder
 
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")

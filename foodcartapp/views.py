@@ -74,13 +74,14 @@ def register_order(request):
         phonenumber=order_data['phonenumber'],
         address=order_data['address'],
     )
-    order_items = order_data['products']
-    for item in order_items:
-        OrderItem.objects.create(
+    order_items = []
+    for item in order_data['products']:
+        order_items.append(OrderItem(
             order=new_order,
             product=item['product'],
             quantity=item['quantity'],
             total_price=item['quantity'] * item['product'].price
-        )
+        ))
+    OrderItem.objects.bulk_create(order_items)
     serializer = OrderSerializer(new_order)
     return Response(serializer.data, status=HTTP_201_CREATED)

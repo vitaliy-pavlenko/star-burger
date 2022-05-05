@@ -9,6 +9,7 @@ class Place(models.Model):
             MinValueValidator(-90.0),
             MaxValueValidator(90.0)
         ],
+        null=True,
         verbose_name='Широта'
     )
     longitude = models.FloatField(
@@ -16,6 +17,7 @@ class Place(models.Model):
             MinValueValidator(-180.0),
             MaxValueValidator(180.0)
         ],
+        null=True,
         verbose_name='Долгота'
     )
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления', db_index=True)

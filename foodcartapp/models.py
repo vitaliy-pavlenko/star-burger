@@ -165,7 +165,7 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(max_length=15, verbose_name='Телефон')
     address = models.CharField(max_length=200, verbose_name='Адрес')
     status = models.IntegerField(choices=STATUS_CHOICES, default=NEW, verbose_name='Статус', db_index=True)
-    comment = models.CharField(max_length=300, blank=True, verbose_name='Комментарий к заказу')
+    comment = models.TextField(blank=True, verbose_name='Комментарий к заказу')
     registered_at = models.DateTimeField(default=timezone.now, verbose_name='Время регистрации заказа', db_index=True)
     called_at = models.DateTimeField(null=True, blank=True, verbose_name='Время звонка менеджера', db_index=True)
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name='Время доставки', db_index=True)
